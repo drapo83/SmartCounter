@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>Wizjer AI</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f5f5f3;--bg3:#ebebea;
+  --text:#1a1a18;--text2:#6b6b68;--text3:#9b9b98;
+  --border:rgba(0,0,0,0.11);--border2:rgba(0,0,0,0.2);
+  --accent:#185FA5;--accent-bg:#E6F1FB;--accent-text:#0C447C;
+  --danger:#A32D2D;--danger-bg:#FCEBEB;
+  --success:#0F6E56;--success-bg:#E1F5EE;--success-text:#085041;
+  --warn:#854F0B;--warn-bg:#FAEEDA;
+  --purple:#534AB7;--purple-bg:#EEEDFE;--purple-text:#3C3489;
+  --teal:#0F6E56;--teal-bg:#E1F5EE;--teal-text:#085041;
+  --coral:#993C1D;--coral-bg:#FAECE7;--coral-text:#712B13;
+  --r:12px;--rs:8px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1c1c1a;--bg2:#252523;--bg3:#2e2e2c;
+    --text:#f0f0ee;--text2:#a8a8a5;--text3:#6b6b68;
+    --border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.18);
+    --accent:#378ADD;--accent-bg:#0c2a45;--accent-text:#85B7EB;
+    --danger:#E24B4A;--danger-bg:#3a1414;
+    --success:#1D9E75;--success-bg:#083322;--success-text:#5DCAA5;
+    --warn:#EF9F27;--warn-bg:#3a2800;
+    --purple:#7F77DD;--purple-bg:#1e1c42;--purple-text:#AFA9EC;
+    --teal:#1D9E75;--teal-bg:#052e20;--teal-text:#5DCAA5;
+    --coral:#D85A30;--coral-bg:#3a1508;--coral-text:#F0997B;
+  }
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:16px;line-height:1.5;-webkit-tap-highlight-color:transparent}
+body{display:flex;flex-direction:column;max-width:480px;margin:0 auto;min-height:100dvh}
+
+/* HEADER */
+header{padding:14px 16px 10px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--bg);position:sticky;top:0;z-index:20}
+.logo{width:34px;height:34px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+header h1{font-size:17px;font-weight:600;letter-spacing:-0.3px}
+header p{font-size:11px;color:var(--text2)}
+
+/* TABS */
+.tabs{display:flex;border-bottom:0.5px solid var(--border);background:var(--bg);position:sticky;top:58px;z-index:19}
+.tab{flex:1;padding:10px 4px;font-size:13px;font-weight:500;color:var(--text2);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;transition:color .15s;font-family:inherit}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* MAIN */
+main{flex:1;padding:14px 14px 40px;display:flex;flex-direction:column;gap:12px}
+
+/* API */
+.api-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:12px 14px}
+.field-label{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block}
+.api-row{display:flex;gap:8px}
+.api-row input{flex:1;padding:9px 12px;font-size:13px;background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--rs);color:var(--text);outline:none;font-family:monospace}
+.api-row input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(55,138,221,.15)}
+.icon-btn{width:38px;height:38px;background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--rs);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);flex-shrink:0}
+.api-hint{font-size:11px;color:var(--text3);margin-top:6px}
+.api-hint a{color:var(--accent);text-decoration:none}
+
+/* VIEWFINDER */
+.viewfinder{position:relative;width:100%;aspect-ratio:4/3;background:#111;border-radius:var(--r);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.viewfinder video{width:100%;height:100%;object-fit:cover;display:none}
+.viewfinder img#preview{width:100%;height:100%;object-fit:cover;display:none}
+.idle-state{display:flex;flex-direction:column;align-items:center;gap:8px;color:#666}
+.idle-state p{font-size:13px}
+.corner{position:absolute;width:22px;height:22px;display:none}
+.corner.tl{top:12px;left:12px;border-top:2px solid #fff;border-left:2px solid #fff;border-radius:3px 0 0 0}
+.corner.tr{top:12px;right:12px;border-top:2px solid #fff;border-right:2px solid #fff;border-radius:0 3px 0 0}
+.corner.bl{bottom:12px;left:12px;border-bottom:2px solid #fff;border-left:2px solid #fff;border-radius:0 0 0 3px}
+.corner.br{bottom:12px;right:12px;border-bottom:2px solid #fff;border-right:2px solid #fff;border-radius:0 0 3px 0}
+.badge-overlay{position:absolute;bottom:12px;left:12px;right:12px;display:none;flex-wrap:wrap;gap:5px}
+.overlay-badge{background:rgba(0,0,0,.65);color:#fff;font-size:12px;padding:4px 10px;border-radius:99px;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.count-overlay{position:absolute;top:12px;right:12px;background:rgba(0,0,0,.65);color:#fff;font-size:24px;font-weight:600;padding:5px 14px;border-radius:99px;display:none;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+
+/* MODE SELECTOR */
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mode-card{padding:12px;border:0.5px solid var(--border2);border-radius:var(--rs);background:var(--bg2);cursor:pointer;text-align:left;font-family:inherit;transition:border-color .15s, background .15s}
+.mode-card:active{background:var(--bg3)}
+.mode-card.selected{border-color:var(--accent);background:var(--accent-bg)}
+.mode-card.selected .mode-title{color:var(--accent-text)}
+.mode-icon{font-size:22px;margin-bottom:4px}
+.mode-title{font-size:13px;font-weight:500;color:var(--text)}
+.mode-desc{font-size:11px;color:var(--text2);margin-top:2px;line-height:1.4}
+.mode-card.selected .mode-desc{color:var(--accent-text);opacity:.7}
+
+/* COUNTING EXTRAS */
+.prompt-wrap{display:flex;flex-direction:column;gap:7px}
+.prompt-input{width:100%;padding:10px 13px;font-size:14px;background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--rs);color:var(--text);outline:none;font-family:inherit}
+.prompt-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(55,138,221,.15)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:5px 11px;font-size:12px;border:0.5px solid var(--border2);border-radius:99px;background:var(--bg2);color:var(--text2);cursor:pointer;font-family:inherit}
+.chip:active{background:var(--bg3)}
+
+/* ACTIONS */
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn{padding:12px 8px;font-size:13px;font-weight:500;border:0.5px solid var(--border2);border-radius:var(--rs);background:var(--bg2);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;-webkit-appearance:none}
+.btn:active{background:var(--bg3)}
+.btn.primary{background:var(--accent-bg);color:var(--accent-text);border-color:transparent;grid-column:1/-1;padding:14px;font-size:15px;font-weight:600}
+.btn.primary:active{opacity:.85}
+.btn.primary:disabled{opacity:.5;cursor:not-allowed}
+.btn.ghost{color:var(--text2);border-color:var(--border)}
+input[type=file]{display:none}
+
+/* LOADING */
+.loading{display:none;align-items:center;gap:10px;padding:13px 14px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);font-size:13px;color:var(--text2)}
+.spinner{width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* RESULTS */
+.error-box{display:none;padding:11px 13px;font-size:13px;color:var(--danger);background:var(--danger-bg);border:0.5px solid var(--danger);border-radius:var(--rs)}
+
+.result-box{display:none;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg2);overflow:hidden}
+.result-header{padding:9px 14px;font-size:11px;font-weight:600;color:var(--text2);border-bottom:0.5px solid var(--border);text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:6px}
+.result-body{padding:14px;font-size:14px;color:var(--text);line-height:1.7;white-space:pre-wrap}
+
+/* STRUCTURED RESULT */
+.struct-result{display:none;border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden}
+.struct-section{border-bottom:0.5px solid var(--border)}
+.struct-section:last-child{border-bottom:none}
+.struct-header{padding:10px 14px;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;background:var(--bg2);display:flex;align-items:center;gap:6px}
+.struct-content{padding:12px 14px;font-size:14px;color:var(--text);line-height:1.65}
+
+/* TAGS */
+.tag-list{display:flex;flex-wrap:wrap;gap:6px;padding:12px 14px}
+.tag{padding:4px 11px;font-size:12px;border-radius:99px;font-weight:500}
+.tag.blue{background:var(--accent-bg);color:var(--accent-text)}
+.tag.green{background:var(--success-bg);color:var(--success-text)}
+.tag.purple{background:var(--purple-bg);color:var(--purple-text)}
+.tag.coral{background:var(--coral-bg);color:var(--coral-text)}
+.tag.warn{background:var(--warn-bg);color:var(--warn)}
+
+/* PRODUCT GRID */
+.product-grid{display:flex;flex-direction:column;gap:0}
+.product-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:0.5px solid var(--border)}
+.product-row:last-child{border-bottom:none}
+.product-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.product-name{font-size:14px;font-weight:500;color:var(--text);flex:1}
+.product-detail{font-size:12px;color:var(--text2);margin-top:1px}
+.product-count{font-size:20px;font-weight:600;color:var(--accent);min-width:36px;text-align:right}
+
+/* SCENE BARS */
+.scene-bars{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.scene-row{display:flex;align-items:center;gap:8px}
+.scene-label{font-size:13px;color:var(--text);min-width:80px}
+.scene-bar-bg{flex:1;height:6px;background:var(--bg3);border-radius:99px;overflow:hidden}
+.scene-bar{height:100%;border-radius:99px;background:var(--accent)}
+.scene-pct{font-size:12px;color:var(--text2);min-width:30px;text-align:right}
+
+/* COLOR SWATCHES */
+.swatch-row{display:flex;flex-wrap:wrap;gap:7px;padding:12px 14px}
+.swatch{width:32px;height:32px;border-radius:8px;border:0.5px solid var(--border)}
+.swatch-label{display:flex;flex-direction:column;align-items:center;gap:3px}
+.swatch-name{font-size:10px;color:var(--text2);text-align:center;max-width:40px}
+
+/* HISTORY */
+.history-section{border-top:0.5px solid var(--border);padding-top:12px;margin-top:4px}
+.history-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.history-item{display:flex;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--border);align-items:flex-start;cursor:pointer}
+.history-item:last-child{border-bottom:none}
+.history-thumb{width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--bg3)}
+.history-info{flex:1;min-width:0}
+.history-mode{font-size:11px;color:var(--text3);margin-bottom:2px}
+.history-summary{font-size:13px;color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.history-time{font-size:11px;color:var(--text3);margin-top:2px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/></svg>
+  </div>
+  <div>
+    <h1>Wizjer AI</h1>
+    <p>Inteligentna analiza obrazu</p>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" data-tab="analyze">Analiza</button>
+  <button class="tab" data-tab="history">Historia</button>
+  <button class="tab" data-tab="settings">Ustawienia</button>
+</div>
+
+<main id="tab-analyze">
+
+  <div class="viewfinder" id="viewfinder">
+    <div class="idle-state" id="idle-state">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      <p>Zrób zdjęcie lub wgraj obraz</p>
+    </div>
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas" style="display:none"></canvas>
+    <img id="preview" alt="" />
+    <div class="corner tl" id="c-tl"></div><div class="corner tr" id="c-tr"></div>
+    <div class="corner bl" id="c-bl"></div><div class="corner br" id="c-br"></div>
+    <div class="count-overlay" id="count-overlay"></div>
+    <div class="badge-overlay" id="badge-overlay"></div>
+  </div>
+
+  <div class="actions">
+    <label class="btn" for="file-input">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Galeria
+    </label>
+    <input type="file" id="file-input" accept="image/*" />
+    <button class="btn" id="btn-camera">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      Aparat
+    </button>
+    <button class="btn primary" id="btn-shoot" style="display:none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+      Zrób zdjęcie
+    </button>
+    <button class="btn ghost" id="btn-reset" style="display:none;grid-column:1/-1">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>
+      Zacznij od nowa
+    </button>
+  </div>
+
+  <!-- MODE PICKER -->
+  <div>
+    <div class="field-label" style="margin-bottom:8px">Tryb analizy</div>
+    <div class="mode-grid">
+      <button class="mode-card selected" data-mode="count">
+        <div class="mode-icon">🔢</div>
+        <div class="mode-title">Liczenie</div>
+        <div class="mode-desc">Policz obiekty na zdjęciu</div>
+      </button>
+      <button class="mode-card" data-mode="products">
+        <div class="mode-icon">🛍️</div>
+        <div class="mode-title">Produkty</div>
+        <div class="mode-desc">Rozpoznaj produkty i marki</div>
+      </button>
+      <button class="mode-card" data-mode="scene">
+        <div class="mode-icon">🌍</div>
+        <div class="mode-title">Scena</div>
+        <div class="mode-desc">Opis miejsca, atmosfery, kontekstu</div>
+      </button>
+      <button class="mode-card" data-mode="detail">
+        <div class="mode-icon">🔍</div>
+        <div class="mode-title">Szczegółowa</div>
+        <div class="mode-desc">Pełna analiza: obiekty, kolory, tekst</div>
+      </button>
+      <button class="mode-card" data-mode="food">
+        <div class="mode-icon">🍽️</div>
+        <div class="mode-title">Jedzenie</div>
+        <div class="mode-desc">Rozpoznaj dania i składniki</div>
+      </button>
+      <button class="mode-card" data-mode="text">
+        <div class="mode-icon">📝</div>
+        <div class="mode-title">Tekst (OCR)</div>
+        <div class="mode-desc">Odczytaj tekst ze zdjęcia</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- COUNT OPTIONS -->
+  <div id="count-options" class="prompt-wrap">
+    <div class="field-label">Co policzyć?</div>
+    <input class="prompt-input" type="text" id="prompt" placeholder="np. ile jest patyków na podłodze" />
+    <div class="chips">
+      <button class="chip" data-v="ile jest patyków">🪵 patyki</button>
+      <button class="chip" data-v="ile jest kulek">⚽ kulki</button>
+      <button class="chip" data-v="ile jest ryb w akwarium">🐟 rybki</button>
+      <button class="chip" data-v="ile jest kłód drewna">🪵 kłody</button>
+      <button class="chip" data-v="ile jest owoców">🍎 owoce</button>
+      <button class="chip" data-v="ile jest osób">🧍 osoby</button>
+      <button class="chip" data-v="ile jest samochodów">🚗 auta</button>
+      <button class="chip" data-v="ile jest zwierząt">🐾 zwierzęta</button>
+      <button class="chip" data-v="ile jest słoików lub butelek">🫙 słoiki</button>
+      <button class="chip" data-v="ile jest książek">📚 książki</button>
+      <button class="chip" data-v="ile jest roślin lub doniczek">🌱 rośliny</button>
+      <button class="chip" data-v="ile jest śrub, gwoździ lub narzędzi">🔩 narzędzia</button>
+    </div>
+  </div>
+
+  <button class="btn primary" id="btn-analyze" style="display:none">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    Analizuj zdjęcie
+  </button>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <span id="loading-text">Analizuję obraz...</span>
+  </div>
+  <div class="error-box" id="error-box"></div>
+
+  <!-- COUNT RESULT -->
+  <div class="result-box" id="result-count">
+    <div class="result-header">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      Wynik liczenia
+    </div>
+    <div class="result-body" id="result-count-body"></div>
+  </div>
+
+  <!-- PRODUCTS RESULT -->
+  <div class="struct-result" id="result-products">
+    <div class="struct-section">
+      <div class="struct-header">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        Rozpoznane produkty
+      </div>
+      <div class="product-grid" id="product-grid"></div>
+    </div>
+    <div class="struct-section">
+      <div class="struct-header">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Podsumowanie
+      </div>
+      <div class="struct-content" id="product-summary"></div>
+    </div>
+  </div>
+
+  <!-- SCENE RESULT -->
+  <div class="struct-result" id="result-scene">
+    <div class="struct-section">
+      <div class="struct-header">🌍 Opis sceny</div>
+      <div class="struct-content" id="scene-desc"></div>
+    </div>
+    <div class="struct-section">
+      <div class="struct-header">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        Nastrój i atmosfera
+      </div>
+      <div class="tag-list" id="scene-mood"></div>
+    </div>
+    <div class="struct-section">
+      <div class="struct-header">📊 Kategorie sceny</div>
+      <div class="scene-bars" id="scene-bars"></div>
+    </div>
+  </div>
+
+  <!-- DETAIL RESULT -->
+  <div class="struct-result" id="result-detail">
+    <div class="struct-section">
+      <div class="struct-header">📌 Główne obiekty</div>
+      <div class="tag-list" id="detail-objects"></div>
+    </div>
+    <div class="struct-section">
+      <div class="struct-header">🎨 Dominujące kolory</div>
+      <div class="swatch-row" id="detail-colors"></div>
+    </div>
+    <div class="struct-section">
+      <div class="struct-header">📝 Szczegółowy opis</div>
+      <div class="struct-content" id="detail-desc"></div>
+    </div>
+    <div class="struct-section" id="detail-text-section" style="display:none">
+      <div class="struct-header">🔤 Tekst na zdjęciu</div>
+      <div class="struct-content" id="detail-text"></div>
+    </div>
+    <div class="struct-section">
+      <div class="struct-header">💡 Ciekawostki / obserwacje</div>
+      <div class="struct-content" id="detail-observations"></div>
+    </div>
+  </div>
+
+  <!-- FOOD RESULT -->
+  <div class="struct-result" id="result-food">
+    <div class="struct-section">
+      <div class="struct-header">🍽️ Dania i potrawy</div>
+      <div class="product-grid" id="food-grid"></div>
+    </div>
+    <div class="struct-section">
+      <div class="struct-header">🥬 Składniki</div>
+      <div class="tag-list" id="food-ingredients"></div>
+    </div>
+    <div class="struct-section">
+      <div class="struct-header">ℹ️ Informacje dodatkowe</div>
+      <div class="struct-content" id="food-info"></div>
+    </div>
+  </div>
+
+  <!-- TEXT RESULT -->
+  <div class="struct-result" id="result-text">
+    <div class="struct-section">
+      <div class="struct-header">📝 Odczytany tekst</div>
+      <div class="struct-content" id="ocr-text" style="font-family:monospace;font-size:13px;white-space:pre-wrap"></div>
+    </div>
+    <div class="struct-section">
+      <div class="struct-header">🌐 Język i kontekst</div>
+      <div class="struct-content" id="ocr-context"></div>
+    </div>
+  </div>
+
+</main>
+
+<main id="tab-history" style="display:none">
+  <div class="history-section" id="history-container">
+    <div style="color:var(--text3);font-size:13px;text-align:center;padding:32px 0">Brak historii analiz</div>
+  </div>
+</main>
+
+<main id="tab-settings" style="display:none">
+  <div class="api-card">
+    <label class="field-label" for="api-key">Klucz API Anthropic</label>
+    <div class="api-row">
+      <input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off" spellcheck="false" />
+      <button class="icon-btn" id="btn-toggle-key" title="Pokaż/ukryj">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <p class="api-hint">Pobierz klucz na <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>. Klucz zapisany jest tylko w pamięci tej sesji.</p>
+  </div>
+
+  <div class="api-card" style="display:flex;flex-direction:column;gap:8px">
+    <div class="field-label">O aplikacji</div>
+    <p style="font-size:13px;color:var(--text2);line-height:1.6">Wizjer AI używa modelu Claude Sonnet do analizy zdjęć w 6 trybach: liczenie obiektów, rozpoznawanie produktów, analiza sceny, szczegółowy opis, rozpoznawanie jedzenia i OCR.</p>
+    <p style="font-size:11px;color:var(--text3)">Zdjęcia są wysyłane bezpośrednio do API Anthropic i nie są nigdzie przechowywane.</p>
+  </div>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+
+// STATE
+let stream=null,capturedB64=null,cameraActive=false,currentMode='count',history=[];
+
+// ELEMENTS
+const video=$('video'),canvas=$('canvas'),preview=$('preview'),idleState=$('idle-state');
+const btnCamera=$('btn-camera'),btnShoot=$('btn-shoot'),btnAnalyze=$('btn-analyze'),btnReset=$('btn-reset');
+const fileInput=$('file-input'),promptInput=$('prompt'),loadingEl=$('loading'),loadingText=$('loading-text');
+const errorBox=$('error-box'),countOverlay=$('count-overlay'),badgeOverlay=$('badge-overlay');
+const countOptions=$('count-options');
+const corners=[$('c-tl'),$('c-tr'),$('c-bl'),$('c-br')];
+const apiKeyInput=$('api-key');
+
+// TABS
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    ['analyze','history','settings'].forEach(id=>{
+      $('tab-'+id).style.display = id===t.dataset.tab ? 'flex' : 'none';
+    });
+    if(t.dataset.tab==='history') renderHistory();
+  });
+});
+
+// API KEY
+const savedKey=sessionStorage.getItem('wk');
+if(savedKey) apiKeyInput.value=savedKey;
+apiKeyInput.addEventListener('input',()=>sessionStorage.setItem('wk',apiKeyInput.value));
+$('btn-toggle-key').addEventListener('click',()=>{ apiKeyInput.type=apiKeyInput.type==='password'?'text':'password'; });
+
+// MODE
+document.querySelectorAll('.mode-card').forEach(c=>{
+  c.addEventListener('click',()=>{
+    document.querySelectorAll('.mode-card').forEach(x=>x.classList.remove('selected'));
+    c.classList.add('selected');
+    currentMode=c.dataset.mode;
+    countOptions.style.display=currentMode==='count'?'flex':'none';
+  });
+});
+
+// CHIPS
+document.querySelectorAll('.chip').forEach(c=>{ c.addEventListener('click',()=>{ promptInput.value=c.dataset.v; }); });
+
+// CAMERA
+btnCamera.addEventListener('click',async()=>{
+  if(cameraActive){stopCamera();return;}
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280}}});
+    video.srcObject=stream; video.style.display='block';
+    preview.style.display='none'; idleState.style.display='none';
+    corners.forEach(c=>c.style.display='block');
+    btnShoot.style.display='flex'; btnAnalyze.style.display='none'; btnReset.style.display='flex';
+    btnCamera.innerHTML=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Zamknij`;
+    cameraActive=true; hideResults();
+  }catch(e){ showError('Brak dostępu do kamery. Użyj galerii.'); }
+});
+
+btnShoot.addEventListener('click',()=>{
+  if(!stream)return;
+  canvas.width=video.videoWidth||1280; canvas.height=video.videoHeight||960;
+  canvas.getContext('2d').drawImage(video,0,0);
+  capturedB64=canvas.toDataURL('image/jpeg',.88).split(',')[1];
+  preview.src='data:image/jpeg;base64,'+capturedB64;
+  preview.style.display='block';
+  stopCamera();
+  btnAnalyze.style.display='flex'; btnReset.style.display='flex';
+  analyze();
+});
+
+fileInput.addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f)return;
+  stopCamera();
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    capturedB64=ev.target.result.split(',')[1];
+    preview.src=ev.target.result; preview.style.display='block';
+    idleState.style.display='none';
+    btnAnalyze.style.display='flex'; btnReset.style.display='flex';
+    hideResults(); analyze();
+  };
+  reader.readAsDataURL(f);
+  e.target.value='';
+});
+
+btnAnalyze.addEventListener('click',()=>{ if(capturedB64) analyze(); });
+btnReset.addEventListener('click',reset);
+
+function stopCamera(){
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+  video.style.display='none'; video.srcObject=null;
+  corners.forEach(c=>c.style.display='none');
+  btnShoot.style.display='none'; cameraActive=false;
+  btnCamera.innerHTML=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Aparat`;
+}
+
+function reset(){
+  stopCamera(); capturedB64=null;
+  preview.style.display='none'; preview.src='';
+  idleState.style.display='flex';
+  hideResults(); errorBox.style.display='none';
+  loadingEl.style.display='none';
+  countOverlay.style.display='none'; badgeOverlay.style.display='none';
+  btnAnalyze.style.display='none'; btnReset.style.display='none';
+}
+
+function hideResults(){
+  ['result-count','result-products','result-scene','result-detail','result-food','result-text']
+    .forEach(id=>{ $(id).style.display='none'; });
+  countOverlay.style.display='none'; badgeOverlay.style.display='none';
+  errorBox.style.display='none';
+}
+
+function showError(msg){ errorBox.textContent=msg; errorBox.style.display='block'; }
+
+// PROMPTS per mode
+const SYSTEM = {
+count:`Jesteś precyzyjnym asystentem do liczenia obiektów na zdjęciach. Odpowiadaj po polsku.
+Zawsze zacznij od "Liczba: X" (gdzie X to liczba lub przedział np. 12-15), potem krótko opisz metodę i trudności.`,
+
+products:`Jesteś ekspertem od rozpoznawania produktów. Odpowiadaj TYLKO w formacie JSON (bez markdown):
+{
+  "products": [
+    {"name":"nazwa produktu","brand":"marka lub null","category":"kategoria","emoji":"1 emoji","count":1,"confidence":"wysoka/średnia/niska"}
+  ],
+  "summary": "krótkie podsumowanie po polsku"
+}`,
+
+scene:`Jesteś ekspertem od analizy scen i fotografii. Odpowiadaj TYLKO w formacie JSON (bez markdown):
+{
+  "description": "opis sceny po polsku (3-5 zdań)",
+  "mood": ["nastrój1","nastrój2","nastrój3"],
+  "categories": [
+    {"label":"kategoria","score":85}
+  ]
+}
+Kategorie mogą być np.: wnętrze, plener, natura, miasto, praca, wypoczynek, dzień, noc itp. Score 0-100.`,
+
+detail:`Jesteś ekspertem od szczegółowej analizy obrazów. Odpowiadaj TYLKO w formacie JSON (bez markdown):
+{
+  "objects": ["obiekt1","obiekt2","obiekt3"],
+  "colors": [{"name":"nazwa koloru po polsku","hex":"#rrggbb"}],
+  "description": "szczegółowy opis po polsku (4-6 zdań)",
+  "text_on_image": "tekst widoczny na zdjęciu lub null",
+  "observations": "ciekawe spostrzeżenia i szczegóły po polsku"
+}
+Podaj max 8 obiektów, max 5 kolorów.`,
+
+food:`Jesteś ekspertem od rozpoznawania jedzenia. Odpowiadaj TYLKO w formacie JSON (bez markdown):
+{
+  "dishes": [
+    {"name":"nazwa dania po polsku","cuisine":"kuchnia","emoji":"1 emoji","notes":"krótka notatka"}
+  ],
+  "ingredients": ["składnik1","składnik2"],
+  "info": "informacje o daniu, kalorii, podaniu po polsku"
+}`,
+
+text:`Jesteś ekspertem OCR. Odczytaj CAŁY tekst widoczny na zdjęciu i odpowiedz TYLKO w formacie JSON (bez markdown):
+{
+  "text": "dokładny tekst ze zdjęcia, zachowaj formatowanie i znaki nowej linii",
+  "language": "język tekstu",
+  "context": "co to jest (paragon, etykieta, szyld, dokument itp.) i dodatkowe uwagi"
+}`
+};
+
+const USER_PROMPTS = {
+count: q => q || 'Policz wszystkie obiekty na zdjęciu',
+products: () => 'Rozpoznaj i wylistuj wszystkie produkty widoczne na zdjęciu.',
+scene: () => 'Przeanalizuj scenę, miejsce i atmosferę tego zdjęcia.',
+detail: () => 'Wykonaj szczegółową analizę tego obrazu.',
+food: () => 'Rozpoznaj dania i składniki widoczne na zdjęciu.',
+text: () => 'Odczytaj cały tekst widoczny na tym zdjęciu.'
+};
+
+async function analyze(){
+  const key=apiKeyInput.value.trim();
+  if(!key){showError('Wpisz klucz API w zakładce Ustawienia.');return;}
+  if(!capturedB64)return;
+
+  hideResults();
+  loadingEl.style.display='flex';
+  loadingText.textContent='Analizuję obraz...';
+  btnAnalyze.disabled=true;
+
+  const userQ=USER_PROMPTS[currentMode](promptInput.value.trim());
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:1500,
+        system:SYSTEM[currentMode],
+        messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:'image/jpeg',data:capturedB64}},
+          {type:'text',text:userQ}
+        ]}]
+      })
+    });
+
+    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error?.message||'Błąd API '+res.status);}
+    const data=await res.json();
+    const rawText=data.content.map(b=>b.text||'').join('');
+
+    loadingEl.style.display='none';
+    renderResult(currentMode, rawText);
+    addHistory(capturedB64, currentMode, rawText);
+  }catch(e){
+    loadingEl.style.display='none';
+    showError('Błąd: '+e.message);
+  }
+  btnAnalyze.disabled=false;
+}
+
+function renderResult(mode, raw){
+  if(mode==='count'){
+    $('result-count').style.display='block';
+    $('result-count-body').textContent=raw;
+    const m=raw.match(/Liczba:\s*([\d]+(?:\s*[-–]\s*[\d]+)?)/i);
+    if(m){countOverlay.textContent=m[1].trim();countOverlay.style.display='block';}
+    return;
+  }
+
+  let json;
+  try{ json=JSON.parse(raw.replace(/```json|```/g,'').trim()); }
+  catch(e){ $('result-count').style.display='block'; $('result-count-body').textContent=raw; return; }
+
+  if(mode==='products'){
+    $('result-products').style.display='block';
+    const grid=$('product-grid');
+    grid.innerHTML=(json.products||[]).map(p=>`
+      <div class="product-row">
+        <div class="product-icon" style="background:var(--bg2)">${p.emoji||'📦'}</div>
+        <div style="flex:1">
+          <div class="product-name">${p.name}${p.brand?` <span style="color:var(--text2);font-weight:400">· ${p.brand}</span>`:''}</div>
+          <div class="product-detail">${p.category||''} · pewność: ${p.confidence||'?'}</div>
+        </div>
+        <div class="product-count">${p.count>1?p.count:''}</div>
+      </div>`).join('');
+    $('product-summary').textContent=json.summary||'';
+    const badges=(json.products||[]).map(p=>`<span class="overlay-badge">${p.emoji} ${p.name}</span>`).join('');
+    if(badges){badgeOverlay.innerHTML=badges;badgeOverlay.style.display='flex';}
+  }
+
+  if(mode==='scene'){
+    $('result-scene').style.display='block';
+    $('scene-desc').textContent=json.description||'';
+    const moodColors=['blue','green','purple','coral','warn'];
+    $('scene-mood').innerHTML=(json.mood||[]).map((m,i)=>`<span class="tag ${moodColors[i%moodColors.length]}">${m}</span>`).join('');
+    $('scene-bars').innerHTML=(json.categories||[]).map(c=>`
+      <div class="scene-row">
+        <span class="scene-label">${c.label}</span>
+        <div class="scene-bar-bg"><div class="scene-bar" style="width:${Math.min(100,c.score||0)}%"></div></div>
+        <span class="scene-pct">${c.score}%</span>
+      </div>`).join('');
+  }
+
+  if(mode==='detail'){
+    $('result-detail').style.display='block';
+    $('detail-objects').innerHTML=(json.objects||[]).map((o,i)=>`<span class="tag ${['blue','purple','green','coral','warn'][i%5]}">${o}</span>`).join('');
+    $('detail-colors').innerHTML=(json.colors||[]).map(c=>`
+      <div class="swatch-label">
+        <div class="swatch" style="background:${c.hex||'#ccc'}"></div>
+        <span class="swatch-name">${c.name||''}</span>
+      </div>`).join('');
+    $('detail-desc').textContent=json.description||'';
+    if(json.text_on_image){
+      $('detail-text-section').style.display='block';
+      $('detail-text').textContent=json.text_on_image;
+    }
+    $('detail-observations').textContent=json.observations||'';
+  }
+
+  if(mode==='food'){
+    $('result-food').style.display='block';
+    $('food-grid').innerHTML=(json.dishes||[]).map(d=>`
+      <div class="product-row">
+        <div class="product-icon" style="background:var(--bg2)">${d.emoji||'🍽️'}</div>
+        <div style="flex:1">
+          <div class="product-name">${d.name}</div>
+          <div class="product-detail">${d.cuisine||''} · ${d.notes||''}</div>
+        </div>
+      </div>`).join('');
+    $('food-ingredients').innerHTML=(json.ingredients||[]).map((ing,i)=>`<span class="tag ${['green','blue','coral'][i%3]}">${ing}</span>`).join('');
+    $('food-info').textContent=json.info||'';
+  }
+
+  if(mode==='text'){
+    $('result-text').style.display='block';
+    $('ocr-text').textContent=json.text||'(brak tekstu)';
+    $('ocr-context').textContent=(json.language?`Język: ${json.language}\n`:'')+(json.context||'');
+  }
+}
+
+// HISTORY
+const MODE_LABELS={count:'Liczenie',products:'Produkty',scene:'Scena',detail:'Szczegółowa',food:'Jedzenie',text:'Tekst (OCR)'};
+const MODE_EMOJI={count:'🔢',products:'🛍️',scene:'🌍',detail:'🔍',food:'🍽️',text:'📝'};
+
+function addHistory(b64,mode,raw){
+  let summary='Analiza gotowa';
+  try{
+    if(mode==='count'){const m=raw.match(/Liczba:\s*([\d\–\-]+(?:\s*[-–]\s*\d+)?)/i);if(m)summary='Liczba: '+m[1].trim();}
+    else{
+      const j=JSON.parse(raw.replace(/```json|```/g,'').trim());
+      if(mode==='products')summary=(j.products||[]).slice(0,3).map(p=>p.name).join(', ');
+      if(mode==='scene')summary=(j.description||'').substring(0,60)+'…';
+      if(mode==='detail')summary=(j.objects||[]).slice(0,4).join(', ');
+      if(mode==='food')summary=(j.dishes||[]).map(d=>d.name).join(', ');
+      if(mode==='text')summary=(j.text||'').substring(0,60).replace(/\n/g,' ')+'…';
+    }
+  }catch(e){}
+  history.unshift({thumb:'data:image/jpeg;base64,'+b64,mode,summary,time:new Date().toLocaleTimeString('pl')});
+  if(history.length>12)history.pop();
+}
+
+function renderHistory(){
+  const c=$('history-container');
+  if(!history.length){c.innerHTML='<div style="color:var(--text3);font-size:13px;text-align:center;padding:32px 0">Brak historii analiz</div>';return;}
+  c.innerHTML='<div class="history-label">Ostatnie analizy</div>'+
+    history.map(h=>`
+      <div class="history-item">
+        <img class="history-thumb" src="${h.thumb}" alt="" />
+        <div class="history-info">
+          <div class="history-mode">${MODE_EMOJI[h.mode]} ${MODE_LABELS[h.mode]}</div>
+          <div class="history-summary">${h.summary}</div>
+          <div class="history-time">${h.time}</div>
+        </div>
+      </div>`).join('');
+}
+</script>
+</body>
+</html>
